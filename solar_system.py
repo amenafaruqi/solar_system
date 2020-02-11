@@ -1,14 +1,10 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Sun Nov 10 22:03:53 2019
-
-@author: amena
-"""
 import astropy.constants as const
 import numpy as np
 import matplotlib.pyplot as plt
 
-# ------------------------------- CONSTANTS ---------------------------------
+# ============================================================================
+# -------------------------------- CONSTANTS ---------------------------------
+# ============================================================================
 
 G = const.G.value                  # Gravitational constant [m3/(kg s2)]
 atm = const.atm.value              # Earth's atmospheric pressure [Pa]
@@ -20,8 +16,9 @@ pc = const.pc.value                # 1 pc [m]
 sigma_sb = const.sigma_sb.value    # Stefan-Boltzmann constant [W/K4 m2]
 
 M_sun = const.M_sun.value          # Mass of the Sun [kg]
-M_venus = 0.815*M_earth            # Mass of Venus [kg]
 M_earth = const.M_earth.value      # Mass of Earth [kg]
+M_mercury = 0.055*M_earth          # Mass of Mercury [kg]
+M_venus = 0.815*M_earth            # Mass of Venus [kg]
 M_mars = 0.107*M_earth             # Mass of Mars [kg]
 M_jupiter = const.M_jup.value      # Mass of Jupiter [kg]
 M_saturn = 95.16*M_earth           # Mass of Saturn [kg]
@@ -29,6 +26,7 @@ M_uranus = 14.54*M_earth           # Mass of Uranus [kg]
 M_neptune = 17.15*M_earth          # Mass of Neptune [kg]
 
 R_sun = const.R_sun.value          # Radius of Sun [m]
+R_mercury = 2439700                # Radius of Mercury [m]
 R_venus = 6051800                  # Radius of Venus [m]
 R_earth = const.R_earth.value      # Radius of Earth [m]
 R_mars = 3389500                   # Radius of Mars [m]
@@ -37,57 +35,92 @@ R_saturn = 58232000                # Radius of Saturn [m]
 R_uranus = 25262000                # Radius of Uranus [m]
 R_neptune = 246220000              # Radius of Neptune [m]
 
-#----------------------------------------------------------------------------
+a_mercury = 0.12                   # Albedo of Mercury
+a_venus = 0.59                     # Albedo of Venus
+a_earth = 0.31                     # Albedo of Earth
+a_mars = 0.15                      # Albedo of Mars
+a_jupiter = 0.44                   # Albedo of Jupiter
+a_saturn = 0.46                    # Albedo of Saturn
+a_uranus = 0.56                    # Albedo of Uranus
+a_neptune = 0.51                   # Albedo of Neptune
+
+d_mercury = 0.38*au                # Orbital radius of Mercury [m]
+d_venus = 0.72*au                  # Orbital radius of Venus [m]
+d_earth = au                       # Orbital radius of Earth [m]
+d_mars = 1.52*au                   # Orbital radius of Mars [m]
+d_jupiter = 5.2*au                 # Orbital radius of Jupiter [m]
+d_saturn = 9.58*au                 # Orbital radius of Saturn [m]
+d_uranus = 19.14*au                # Orbital radius of Uranus [m]
+d_neptune = 30.2*au                # Orbital radius of Neptune [m]
+
+
+# ============================================================================
+# ------------------------------ ASSUMPTIONS ---------------------------------
+# ============================================================================
+
+# 1) Perfectly circular, constant velocity orbits
+# 2) Uniform density spheres
+# 3) No planetary atmospheres
+
+# ============================================================================
+# ------------------------------ SSO CLASSES ---------------------------------
+#=============================================================================
+
 class SSO:
     def __init__(self, radius, mass):
         self.radius = radius
         self.mass = mass
+        self.volume = (4*np.pi/3)*self.radius**3
+        self.density = self.mass/self.volume
     
-    def density(self):
-        volume = (4*np.pi/3)*self.radius**3
-        return self.mass/volume
-    
+    def orbit(self):
+        pass               # CODE FOR MATHMETICAL ORBITAL TRAJECTORY HERE
 
 class Planet(SSO):
-    def __init__(self, radius, mass, d_orb, period, albedo, parent_luminosity, atmosphere=False):
+    def __init__(self, radius, mass, d_orb, parent, albedo, atmosphere=False):
         SSO.__init__(self, radius, mass)
         self.d_orb = d_orb
-        self.period = period
+        self.parent = parent
         self.albedo = albedo
-        self.parent_luminosity = parent_luminosity
         self.atmosphere = atmosphere
-    
-    def temperature(self):
+        self.period = (((4*np.pi**2)/(G*self.parent.mass))*self.d_orb**3)**0.5
+        self.radial_velocity = (2*np.pi*self.d_orb)/self.period  
+        self.temperature = None
         if not self.atmosphere:
-            T_eff = (self.parent_luminosity*(1-self.albedo)/(16*sigma_sb*np.pi*self.d_orb**2))**0.25
-        else:
-            T_eff = None
-        return T_eff
-    
-    
-    def radial_velocity(self):
-        return (2*np.pi*self.d_orb)/self.period
-        
+            self.temperature = (self.parent.luminosity*(1-self.albedo)/(16*sigma_sb*np.pi*self.d_orb**2))**0.25
+       
+        # CALCULATE ATMOPSHERE TRUE/FALSE BASED ONE ESCAPE VELOCITY??
+        # GET MORE ACCURATE TEMPS AND COLOUR CODE BASED ON THOSE??
+        # ATMOSPHERIC PRESSURE CALCULATION?? 
+      
 class Star(SSO):
     def __init__(self, radius, mass, luminosity):
         SSO.__init__(self, radius, mass)
         self.luminosity = luminosity
-    
-    def temperature(self):
-        T_eff = (self.luminosity/(4*np.pi*sigma_sb*self.radius**2))**0.25
-        return T_eff
+        self.temperature = (self.luminosity/(4*np.pi*sigma_sb*self.radius**2))**0.25
+
 
 class Moon(SSO):
-    def __init__(self, radius, mass, d_orb, period, albedo):
+    def __init__(self, radius, mass, d_orb, parent, albedo):
         SSO.__init__(self, radius, mass)
         self.d_orb = d_orb
-        self.period = period
+        self.parent = parent
         self.albedo = albedo
-
-    def radial_velocity(self):
-        return (2*np.pi*self.d_orb)/self.period
+        self.period = (((4*np.pi**2)/(G*self.parent.mass))*self.d_orb**3)**0.5
+        self.radial_velocity = (2*np.pi*self.d_orb)/self.period
     
-
+    
+# ============================================================================
+# ------------------------- GENERATE A SOLAR SYSTEM --------------------------
+# ============================================================================
+        
 def make_solar_system():
-    pass
+    sun = Star(R_sun, M_sun, L_sun)
+    mercury = Planet(R_mercury, M_mercury, d_mercury, sun, a_mercury)
+    venus  = Planet(R_venus, M_venus, d_venus, sun, a_venus)
+    earth = Planet(R_earth, M_earth, d_earth, sun, a_earth)
+    jupiter = Planet(R_jupiter, M_jupiter, d_jupiter, sun, a_jupiter)
+    saturn = Planet(R_saturn, M_saturn, d_saturn, sun, a_saturn)
+    uranus = Planet(R_uranus, M_uranus, d_uranus, sun, a_uranus)
+    neptune = Planet(R_neptune, M_neptune, d_neptune, sun, a_neptune)
     
