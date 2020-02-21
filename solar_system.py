@@ -3,6 +3,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.patches import Circle
 from matplotlib import cm
+import matplotlib.animation as anim
+import itertools
 
 # ================================================================================================
 # ----------------------------------------- CONSTANTS --------------------------------------------
@@ -70,40 +72,66 @@ d_neptune = 30.2*au                # Orbital radius of Neptune [m]
 
 
 class SSO:
-    def __init__(self, name, radius, mass):
+    def __init__(self, name, radius, mass, obj_type):
         self.name = name
         self.radius = radius
         self.mass = mass
-        self.volume = (4*np.pi/3)*self.radius**3
-        self.density = self.mass/self.volume
+        self.obj_type = obj_type
+        self.__position = np.array((0, 0), dtype=float)
+        self.__patch = Circle(self.__position, self.radius) 
+
+    def get_patch(self):
+        return self.__patch
     
-    def orbit(self):
-        pass               # CODE FOR MATHMETICAL ORBITAL TRAJECTORY HERE
+    def volume(self):
+        return (4*np.pi/3)*self.radius**3
+    
+    def density(self):
+        return self.mass/self.volume
+
 
 class Planet(SSO):
     def __init__(self, name, radius, mass, d_orb, parent, albedo, atmosphere=False):
-        SSO.__init__(self, name, radius, mass)
+        SSO.__init__(self, name, radius, mass, obj_type='planet')
         self.d_orb = d_orb
         self.parent = parent
         self.albedo = albedo
         self.atmosphere = atmosphere
-        self.period = (((4*np.pi**2)/(G*self.parent.mass))*self.d_orb**3)**0.5
-        self.radial_velocity = (2*np.pi*self.d_orb)/self.period  
         self.temperature = None
-        if not self.atmosphere:
-            self.temperature = (self.parent.luminosity*(1-self.albedo)/(16*sigma_sb*np.pi*self.d_orb**2))**0.25
-       
+        self.__position = np.array((d_orb, 0), dtype=float)
+        
+        def temperature(self):
+            if not self.atmosphere:
+                return (self.parent.luminosity*(1-self.albedo)/(16*sigma_sb*np.pi*self.d_orb**2))**0.25
+        
+        def pos(self):
+            return np.array((d_orb, 0), dtype=float)
+    
+        def vel(self):
+            radial_velocity = (2*np.pi*self.d_orb)/self.period 
+            return np.array((0, radial_velocity), dtype=float)
+        
+        def period(self):
+            return (((4*np.pi**2)/(G*self.parent.mass))*self.d_orb**3)**0.5
+        
+        def move_in_orbit(self, dt):
+            self.__position += (self.velocity * dt)
+            self.__patch.center = self.__position
+        
+        
         # CALCULATE ATMOPSHERE TRUE/FALSE BASED ONE ESCAPE VELOCITY??
         # GET MORE ACCURATE TEMPS AND COLOUR CODE BASED ON THOSE??
         # ATMOSPHERIC PRESSURE CALCULATION?? 
       
 class Star(SSO):
     def __init__(self, name, radius, mass, luminosity):
-        SSO.__init__(self, name, radius, mass)
+        SSO.__init__(self, name, radius, mass, obj_type='star')
         self.luminosity = luminosity
         self.temperature = (self.luminosity/(4*np.pi*sigma_sb*self.radius**2))**0.25
+        self.__position = np.array((0, 0), dtype=float)
 
 
+"""
 class Moon(SSO):
     def __init__(self, name, radius, mass, d_orb, parent, albedo):
         SSO.__init__(self, name, radius, mass)
@@ -112,7 +140,8 @@ class Moon(SSO):
         self.albedo = albedo
         self.period = (((4*np.pi**2)/(G*self.parent.mass))*self.d_orb**3)**0.5
         self.radial_velocity = (2*np.pi*self.d_orb)/self.period
-    
+        self.__position = np.array(d_orb, 0)
+"""    
     
 # ================================================================================================
 # --------------------------------- GENERATE A SOLAR SYSTEM --------------------------------------
@@ -128,18 +157,20 @@ saturn = Planet('Saturn', R_saturn, M_saturn, d_saturn, sun, a_saturn)
 uranus = Planet('Uranus', R_uranus, M_uranus, d_uranus, sun, a_uranus)
 neptune = Planet('Neptune', R_neptune, M_neptune, d_neptune, sun, a_neptune)
 
-SSOs = [sun, mercury, venus, earth, mars, jupiter, saturn, uranus, neptune]
 
+# ================================================================================================
+# --------------------------------------- MAKE PLOTS ---------------------------------------------
+# ================================================================================================
 
 def make_static_plot(SSOs):
     ax = plt.subplot(111)
     ax.set_ylim(-15,15)
-    colours = cm.rainbow(np.linspace(0, 1, len(SSOs)))
+    colours = cm.rainbow(np.linspace(0, 1, len(SSOs)))[::-1]
     
     for i in range(len(SSOs)):
         radius = np.log10(SSOs[i].radius/1e6)
         y = 0
-        if isinstance(SSOs[i], Planet):
+        if SSOs[i].obj_type == 'planet':
             x = SSOs[i].d_orb/(0.1*au)
         else:
             x = 0
@@ -156,6 +187,51 @@ def make_static_plot(SSOs):
     plt.autoscale(axis='x')
     plt.show()
         
+
+class SSOAnimation:
+    def __init__(self, SSOs=[]):
+        self.SSOs = SSOs
+        self.__text0 = None
+    
+    def init_figure(self):
+        solar_system = plt.Circle((0,0), 10, fill = False, ls = 'solid')
+        ax.add_artist(solar_system)
+        self.__text0 = ax.text(-9.9,9,"day={:4d}".format(0,fontsize=12))
+        patches = [self.__text0]
+        for obj in self.SSOs:
+            sso = obj.get_patch()
+            ax.add_patch(sso)
+            patches.append(sso)
+        return patches
+
+    def next_frame(self, i):
+        self.__text0.set_text("day={:4d}".format(i))
+        patches = [self.__text0]
+        dt = 3600*24    
+        for obj in SSOs:
+            if obj.obj_type == 'p':
+                obj.move_in_orbit(dt)
+                patches.append(obj.get_patch())
+                
+        return patches
+
+
+if __name__ == "__main__":
+    
+    SSOs = [sun, mercury, venus, earth, mars, jupiter, saturn, uranus, neptune]
+    fig = plt.figure()
+    ax = plt.axes(xlim=(-10, 10), ylim=(-10, 10))
+    ax.axes.set_aspect('equal') 
+       
+    movie = SSOAnimation(SSOs)       
+    animation = anim.FuncAnimation(fig, 
+                                   movie.next_frame, 
+                                   init_func = movie.init_figure, 
+                                   frames = 1000, 
+                                   interval = 10,
+                                   blit = True)
+   
+    plt.show()
     
 
     
