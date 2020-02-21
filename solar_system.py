@@ -165,6 +165,9 @@ neptune = Planet('Neptune', R_neptune, M_neptune, d_neptune, sun, a_neptune)
 def make_static_plot(SSOs):
     ax = plt.subplot(111)
     ax.set_ylim(-15,15)
+    solar_system = Circle((0,0), 350, fill = True, fc='black', ls = 'solid')
+    ax.add_patch(solar_system)
+    ax.axes.set_aspect('equal') 
     colours = cm.rainbow(np.linspace(0, 1, len(SSOs)))[::-1]
     
     for i in range(len(SSOs)):
@@ -178,7 +181,6 @@ def make_static_plot(SSOs):
         ax.add_patch(obj_plot)
     
     plt.legend(bbox_to_anchor=(1.1,1))
-    ax.set_facecolor('black')
     ax.set_xlabel('Distance from Sun (10 AU)')
     plt.title('The Solar System (2D, static)')
     ax.set_yticklabels([])
@@ -194,7 +196,8 @@ class SSOAnimation:
         self.__text0 = None
     
     def init_figure(self):
-        solar_system = plt.Circle((0,0), 10, fill = False, ls = 'solid')
+        ax.set_facecolor('white')
+        solar_system = plt.Circle((0,0), 10, fill = True, fc = 'black', ls = 'solid')
         ax.add_artist(solar_system)
         self.__text0 = ax.text(-9.9,9,"day={:4d}".format(0,fontsize=12))
         patches = [self.__text0]
@@ -207,9 +210,10 @@ class SSOAnimation:
     def next_frame(self, i):
         self.__text0.set_text("day={:4d}".format(i))
         patches = [self.__text0]
-        dt = 3600*24    
+        dt = 3600*24
         for obj in SSOs:
             if obj.obj_type == 'p':
+                print(obj.name)
                 obj.move_in_orbit(dt)
                 patches.append(obj.get_patch())
                 
@@ -230,7 +234,7 @@ if __name__ == "__main__":
                                    frames = 1000, 
                                    interval = 10,
                                    blit = True)
-   
+
     plt.show()
     
 
