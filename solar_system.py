@@ -197,9 +197,9 @@ class SSOAnimation:
     
     def init_figure(self):
         ax.set_facecolor('white')
-        solar_system = plt.Circle((0,0), 10, fill = True, fc = 'black', ls = 'solid')
+        solar_system = plt.Circle((0,0), 350, fill = True, fc = 'black', ls = 'solid')
         ax.add_artist(solar_system)
-        self.__text0 = ax.text(-9.9,9,"day={:4d}".format(0,fontsize=12))
+        self.__text0 = ax.text(-340,320,"day={:4d}".format(0,fontsize=24))
         patches = [self.__text0]
         for obj in self.SSOs:
             sso = obj.get_patch()
@@ -224,7 +224,7 @@ if __name__ == "__main__":
     
     SSOs = [sun, mercury, venus, earth, mars, jupiter, saturn, uranus, neptune]
     fig = plt.figure()
-    ax = plt.axes(xlim=(-10, 10), ylim=(-10, 10))
+    ax = plt.axes(xlim=(-350, 350), ylim=(-350, 350))
     ax.axes.set_aspect('equal') 
        
     movie = SSOAnimation(SSOs)       
