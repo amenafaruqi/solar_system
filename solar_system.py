@@ -202,9 +202,17 @@ class SSOAnimation:
         self.__text0 = ax.text(-340,320,"day={:4d}".format(0,fontsize=24))
         patches = [self.__text0]
         for obj in self.SSOs:
-            sso = obj.get_patch()
-            ax.add_patch(sso)
-            patches.append(sso)
+            print(obj.name)
+            radius = np.log10(obj.radius/1e6)
+            y = 0
+            if obj.obj_type == 'planet':
+                x = obj.d_orb/(0.1*au)
+            else:
+                x = 0
+            obj_plot = Circle((x,y), radius, label=obj.name, color='r')
+            print(obj_plot)
+            ax.add_artist(obj_plot)
+            patches.append(obj_plot)
         return patches
 
     def next_frame(self, i):
@@ -215,6 +223,8 @@ class SSOAnimation:
             if obj.obj_type == 'p':
                 print(obj.name)
                 obj.move_in_orbit(dt)
+                print(obj.__position)
+                print(obj.vel())
                 patches.append(obj.get_patch())
                 
         return patches
@@ -227,14 +237,21 @@ if __name__ == "__main__":
     ax = plt.axes(xlim=(-350, 350), ylim=(-350, 350))
     ax.axes.set_aspect('equal') 
        
-    movie = SSOAnimation(SSOs)       
+    movie = SSOAnimation(SSOs) 
+    patches = movie.init_figure()
+    
+    """
     animation = anim.FuncAnimation(fig, 
                                    movie.next_frame, 
                                    init_func = movie.init_figure, 
                                    frames = 1000, 
                                    interval = 10,
                                    blit = True)
-
+    """
+    
+    #ax.set_yticklabels([])
+    #ax.set_xticklabels([])
+    plt.title('The Solar System (2D, animated)')
     plt.show()
     
 
