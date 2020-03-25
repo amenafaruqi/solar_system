@@ -170,18 +170,18 @@ def make_static_plot(SSOs):
     ax.axes.set_aspect('equal') 
     colours = cm.rainbow(np.linspace(0, 1, len(SSOs)))[::-1]
     
-    for i in range(len(SSOs)):
-        radius = np.log10(SSOs[i].radius/1e6)
+    for i, obj in enumerate(SSOs):
+        radius = np.log10(obj.radius/1e6)
         y = 0
-        if SSOs[i].obj_type == 'planet':
-            x = SSOs[i].d_orb/(0.1*au)
+        if obj.obj_type == 'planet':
+            x = obj.d_orb/(0.1*au)
         else:
             x = 0
-        obj_plot = Circle((x,y), radius, label = SSOs[i].name, color=colours[i])
+        obj_plot = Circle((x,y), radius, label = obj.name, color=colours[i])
         ax.add_patch(obj_plot)
     
     plt.legend(bbox_to_anchor=(1.1,1))
-    ax.set_xlabel('Distance from Sun (10 AU)')
+    ax.set_xlabel('Distance from Sun (0.1 AU)')
     plt.title('The Solar System (2D, static)')
     ax.set_yticklabels([])
     fig = plt.gcf()
@@ -201,31 +201,32 @@ class SSOAnimation:
         ax.add_artist(solar_system)
         self.__text0 = ax.text(-340,320,"day={:4d}".format(0,fontsize=24))
         patches = [self.__text0]
-        for obj in self.SSOs:
-            print(obj.name)
+        colours = cm.rainbow(np.linspace(0, 1, len(self.SSOs)))[::-1]
+        for i, obj in enumerate(self.SSOs):
             radius = np.log10(obj.radius/1e6)
             y = 0
             if obj.obj_type == 'planet':
                 x = obj.d_orb/(0.1*au)
             else:
                 x = 0
-            obj_plot = Circle((x,y), radius, label=obj.name, color='r')
-            print(obj_plot)
+            obj_plot = Circle((x,y), radius, label=obj.name, color=colours[i])
             ax.add_artist(obj_plot)
             patches.append(obj_plot)
         return patches
 
-    def next_frame(self, i):
-        self.__text0.set_text("day={:4d}".format(i))
+    def next_frame(self, i):        
+        self.__text0.set_text("day={:4d}".format(i))        
         patches = [self.__text0]
         dt = 3600*24
         for obj in SSOs:
+            patches += self.init_figure()
+            '''
             if obj.obj_type == 'p':
                 print(obj.name)
                 obj.move_in_orbit(dt)
                 print(obj.__position)
                 print(obj.vel())
-                patches.append(obj.get_patch())
+                patches.append(obj.get_patch())'''
                 
         return patches
 
@@ -238,16 +239,15 @@ if __name__ == "__main__":
     ax.axes.set_aspect('equal') 
        
     movie = SSOAnimation(SSOs) 
-    patches = movie.init_figure()
+    #patches = movie.init_figure()
     
-    """
+
     animation = anim.FuncAnimation(fig, 
                                    movie.next_frame, 
                                    init_func = movie.init_figure, 
                                    frames = 1000, 
                                    interval = 10,
                                    blit = True)
-    """
     
     #ax.set_yticklabels([])
     #ax.set_xticklabels([])
