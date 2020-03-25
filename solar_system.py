@@ -72,12 +72,12 @@ d_neptune = 30.2*au                # Orbital radius of Neptune [m]
 
 
 class SSO:
-    def __init__(self, name, radius, mass, obj_type):
+    def __init__(self, name, radius, mass, d_orb, obj_type):
         self.name = name
         self.radius = radius
         self.mass = mass
         self.obj_type = obj_type
-        self.__position = np.array((0, 0), dtype=float)
+        self.__position = np.array((0, d_orb), dtype=float)
         self.__patch = Circle(self.__position, self.radius) 
 
     def get_patch(self):
@@ -88,11 +88,14 @@ class SSO:
     
     def density(self):
         return self.mass/self.volume
+    
+    def pos(self):
+        return self.__position/(0.1*au)  
 
 
 class Planet(SSO):
     def __init__(self, name, radius, mass, d_orb, parent, albedo, atmosphere=False):
-        SSO.__init__(self, name, radius, mass, obj_type='planet')
+        SSO.__init__(self, name, radius, mass, d_orb, obj_type='planet')
         self.d_orb = d_orb
         self.parent = parent
         self.albedo = albedo
@@ -100,23 +103,23 @@ class Planet(SSO):
         self.temperature = None
         self.__position = np.array((d_orb, 0), dtype=float)
         
-        def temperature(self):
-            if not self.atmosphere:
-                return (self.parent.luminosity*(1-self.albedo)/(16*sigma_sb*np.pi*self.d_orb**2))**0.25
-        
-        def pos(self):
-            return np.array((d_orb, 0), dtype=float)
+    def temperature(self):
+        if not self.atmosphere:
+            return (self.parent.luminosity*(1-self.albedo)/(16*sigma_sb*np.pi*self.d_orb**2))**0.25
     
-        def vel(self):
-            radial_velocity = (2*np.pi*self.d_orb)/self.period 
-            return np.array((0, radial_velocity), dtype=float)
-        
-        def period(self):
-            return (((4*np.pi**2)/(G*self.parent.mass))*self.d_orb**3)**0.5
-        
-        def move_in_orbit(self, dt):
-            self.__position += (self.velocity * dt)
-            self.__patch.center = self.__position
+
+    def velocity(self, t=0):
+        v_angular = (2*np.pi)/self.period()
+        x_velocity = - self.d_orb*v_angular*np.sin(v_angular*t)
+        y_velocity = self.d_orb*v_angular*np.cos(v_angular*t)
+        return np.array((x_velocity, y_velocity), dtype=float)
+    
+    def period(self):
+        return (((4*np.pi**2)/(G*self.parent.mass))*self.d_orb**3)**0.5
+    
+    def move_in_orbit(self, dt, t=0):
+        self.__position += (self.velocity(t) * dt)
+        self.get_patch().center = self.__position
         
         
         # CALCULATE ATMOPSHERE TRUE/FALSE BASED ONE ESCAPE VELOCITY??
@@ -124,8 +127,8 @@ class Planet(SSO):
         # ATMOSPHERIC PRESSURE CALCULATION?? 
       
 class Star(SSO):
-    def __init__(self, name, radius, mass, luminosity):
-        SSO.__init__(self, name, radius, mass, obj_type='star')
+    def __init__(self, name, radius, mass, luminosity, d_orb=0):
+        SSO.__init__(self, name, radius, mass, d_orb, obj_type='star')
         self.luminosity = luminosity
         self.temperature = (self.luminosity/(4*np.pi*sigma_sb*self.radius**2))**0.25
         self.__position = np.array((0, 0), dtype=float)
@@ -204,28 +207,39 @@ class SSOAnimation:
         colours = cm.rainbow(np.linspace(0, 1, len(self.SSOs)))[::-1]
         for i, obj in enumerate(self.SSOs):
             radius = np.log10(obj.radius/1e6)
-            y = 0
-            if obj.obj_type == 'planet':
-                x = obj.d_orb/(0.1*au)
-            else:
-                x = 0
-            obj_plot = Circle((x,y), radius, label=obj.name, color=colours[i])
+            obj_plot = Circle(obj.pos(), radius, label=obj.name, color=colours[i])
             ax.add_artist(obj_plot)
             patches.append(obj_plot)
         return patches
 
     def next_frame(self, i):        
+        t = i * 3600
+        dt = 10
+        
+        ax.set_facecolor('white')
+        solar_system = plt.Circle((0,0), 350, fill = True, fc = 'black', ls = 'solid')
+        ax.add_artist(solar_system)
         self.__text0.set_text("day={:4d}".format(i))        
         patches = [self.__text0]
-        dt = 3600*24
+        colours = cm.rainbow(np.linspace(0, 1, len(self.SSOs)))[::-1]
+        for i, obj in enumerate(self.SSOs):
+            radius = np.log10(obj.radius/1e6)
+            obj.__position = obj.__position/(0.1*au)  
+
+            obj_plot = Circle(obj.__position, radius, label=obj.name, color=colours[i])
+            ax.add_artist(obj_plot)
+            patches.append(obj_plot)
+
+        '''
         for obj in SSOs:
-            patches += self.init_figure()
-            '''
-            if obj.obj_type == 'p':
+            #patches += self.init_figure()
+            if obj.obj_type == 'planet':
                 print(obj.name)
-                obj.move_in_orbit(dt)
-                print(obj.__position)
-                print(obj.vel())
+                print(obj.pos())
+                print(obj.velocity(t))
+                obj.move_in_orbit(dt, t)
+                print(obj.pos())
+                print(obj.velocity(t+dt))
                 patches.append(obj.get_patch())'''
                 
         return patches
@@ -239,15 +253,15 @@ if __name__ == "__main__":
     ax.axes.set_aspect('equal') 
        
     movie = SSOAnimation(SSOs) 
-    #patches = movie.init_figure()
+    patches = movie.init_figure()
     
-
+    '''
     animation = anim.FuncAnimation(fig, 
                                    movie.next_frame, 
                                    init_func = movie.init_figure, 
                                    frames = 1000, 
                                    interval = 10,
-                                   blit = True)
+                                   blit = True)'''
     
     #ax.set_yticklabels([])
     #ax.set_xticklabels([])
