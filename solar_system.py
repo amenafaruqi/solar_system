@@ -3,6 +3,8 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import Circle
 from matplotlib import cm
 import matplotlib.animation as anim
+import mpl_toolkits.mplot3d.axes3d as p3
+
 import constants as c
 
 # ================================================================================================
@@ -100,9 +102,9 @@ class SSOVisualisation:
         self.SSOs = SSOs
         self.__text0 = None
 
-    def make_solar_system(self, i):
+    def make_2D_solar_system(self, i):
         t = i * 3600 * 24 * 29.5   # Each frame is a month
-
+                
         solar_system = plt.Circle((0, 0), 350, fill=True, fc='black', ls='solid')
         ax.add_artist(solar_system)
         ax.axes.set_aspect('equal')
@@ -115,21 +117,25 @@ class SSOVisualisation:
                 radius = np.log10(obj.radius/1e6)
                 obj.move_in_orbit(t)
                 obj_plot = Circle(obj.position/(0.1*c.au), radius, label=obj.name, color=colours[i])
-                ax.add_artist(obj_plot)
+                ax.add_patch(obj_plot)
                 patches.append(obj_plot)
             else:
                 radius = np.log10(obj.radius/1e6)
                 obj_plot = Circle(obj.position/(0.1*c.au), radius, label=obj.name, color=colours[i])
-                ax.add_artist(obj_plot)
+                ax.add_patch(obj_plot)
                 patches.append(obj_plot)
+
+        handles, labels = plt.gca().get_legend_handles_labels()
+        by_label = dict(zip(labels, handles))
+        plt.legend(by_label.values(), by_label.keys(), bbox_to_anchor=(1.1, 1))
 
         return patches
 
     def init_figure(self):
-        return self.make_solar_system(i=0)
+        return self.make_2D_solar_system(i=0)
 
     def next_frame(self, i):
-        return self.make_solar_system(i)
+        return self.make_2D_solar_system(i)
 
     def make_static_plot(self):
         ax = plt.subplot(111)
@@ -149,7 +155,7 @@ class SSOVisualisation:
             obj_plot = Circle((x, y), radius, label=obj.name, color=colours[i])
             ax.add_patch(obj_plot)
 
-        plt.legend(bbox_to_anchor=(1.1, 1))
+        plt.legend(bbox_to_anchor=(1.1, 1.5))
         ax.set_xlabel('Distance from Sun (0.1 AU)')
         plt.title('The Solar System (2D, static)')
         ax.set_yticklabels([])
@@ -162,19 +168,23 @@ class SSOVisualisation:
 if __name__ == "__main__":
 
     SSOs = [sun, mercury, venus, earth, mars, jupiter, saturn, uranus, neptune]
+    solar_system = SSOVisualisation(SSOs)
+
+    solar_system.make_static_plot()
+
     fig = plt.figure()
     ax = plt.axes(xlim=(-350, 350), ylim=(-350, 350))
     ax.set_facecolor('white')
 
-    movie = SSOVisualisation(SSOs)
 
     animation = anim.FuncAnimation(fig,
-                                   movie.next_frame,
-                                   init_func=movie.init_figure,
+                                   solar_system.next_frame,
+                                   init_func=solar_system.init_figure,
                                    frames=2000,
                                    interval=50,
                                    blit=True)
 
+    ax.set_xlabel('Distance from Sun (0.1 AU)')
     plt.title('The Solar System (2D, animated)')
     plt.show()
 
