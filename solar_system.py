@@ -133,15 +133,15 @@ class SSOVisualisation:
             obj.position = np.append(obj.position, 0)
             obj.velocity = np.append(obj.velocity, 0)
 
-    def make_3D_solar_system(self, n, scatters):
+    def make_3D_solar_system(self, n):
         t = n * 3600 * 24 * 29.5   # Each frame is a month
         
         ax.axes.set_aspect('equal')
         self.__text0 = ax.text2D(0.05, 0.95, "Month={:4d}".format(n, fontsize=24), 
                                  transform=ax.transAxes)
         patches = [self.__text0]
-        colours = cm.rainbow(np.linspace(0, 1, len(self.SSOs)))[::-1]
-
+        colours = cm.rainbow(np.linspace(0, 1, len(SSOs)))[::-1]
+        
         for i, obj in enumerate(self.SSOs):
             print(obj.name)
             size = ((np.log10(obj.radius/1e6))**2)*10
@@ -150,9 +150,15 @@ class SSOVisualisation:
             self.add_third_dimension(obj)
             x, y, z = obj.position/(0.1*c.au)
             print(x,y,z)
-            patches.append(ax.scatter(x, y, z, marker='.', s=size, color=colours[i], label=obj.name, depthshade=True))
-            
-
+            patches.append(ax.scatter(x, y, z, marker='.', s=size, color=colours[i], 
+                                      label=obj.name, depthshade=True))
+        '''for i, obj in enumerate(self.SSOs):
+            if obj.obj_type == 'planet':
+                obj.move_in_orbit(t)
+            self.add_third_dimension(obj)
+            x, y, z = obj.position/(0.1*c.au)
+            scatters[i+1]._offsets3d = (x, y, z)'''
+    
         handles, labels = plt.gca().get_legend_handles_labels()
         by_label = dict(zip(labels, handles))
         plt.legend(by_label.values(), by_label.keys(), bbox_to_anchor=(1.5, 1))
@@ -207,7 +213,7 @@ if __name__ == "__main__":
         
     #solar_system.init_3D_figure()
     #solar_system.next_3D_frame(n=1000)
-    
+    '''
     init_text = ax.text2D(0.05, 0.95, "Month=0", transform=ax.transAxes)
     scatters = [init_text]
     colours = cm.rainbow(np.linspace(0, 1, len(SSOs)))[::-1]
@@ -217,11 +223,11 @@ if __name__ == "__main__":
         x, y, z = obj.position/(0.1*c.au)
         scatters.append(ax.scatter(x, y, z, marker='.', s=size, color=colours[i], label=obj.name, depthshade=True))
         print(len(scatters))
+        print(scatters)'''
 
 
     animation = anim.FuncAnimation(fig,
-                                   func=solar_system.next_3D_frame,
-                                   init_func=solar_system.init_3D_figure,
+                                   func=solar_system.make_3D_solar_system,
                                    frames=[0,1,100],
                                    interval=500,
                                    blit=True)
@@ -239,11 +245,11 @@ if __name__ == "__main__":
                                    solar_system.make_2D_solar_system,
                                    frames=2000,
                                    interval=50,
-                                   blit=True)'''
+                                   blit=True)
 
     ax.set_xlabel('Distance from Sun (0.1 AU)')
     plt.title('The Solar System (2D, animated)')
-    plt.show()
+    plt.show()'''
 
 # CALCULATE ATMOPSHERE TRUE/FALSE BASED ONE ESCAPE VELOCITY??
 # GET MORE ACCURATE TEMPS AND COLOUR CODE BASED ON THOSE??
