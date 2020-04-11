@@ -3,8 +3,7 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import Circle
 from matplotlib import cm
 import matplotlib.animation as anim
-import mpl_toolkits.mplot3d.axes3d as p3
-
+from mpl_toolkits.mplot3d import Axes3D
 import constants as c
 
 # ================================================================================================
@@ -45,7 +44,7 @@ class Planet(SSO):
         self.temperature = None
         self.position = np.array((d_orb, 0), dtype=float)
         self.v_angular = (2*np.pi)/self.period()
-        self.velocity = self.v_angular*self.d_orb
+        self.velocity = self.v_angular*self.position
 
     def temperature(self):
         if not self.atmosphere:
@@ -65,8 +64,8 @@ class Planet(SSO):
         self.position = np.array((x, y), dtype=float)
 
     def move_in_orbit(self, t=0):
-        self.update_velocity(t)
         self.update_position(t)
+        self.update_velocity(t)
 
 
 class Star(SSO):
@@ -75,6 +74,7 @@ class Star(SSO):
         self.luminosity = luminosity
         self.temperature = (self.luminosity/(4*np.pi*c.sigma_sb*self.radius**2))**0.25
         self.position = np.array((0, 0), dtype=float)
+        self.velocity = np.array((0, 0), dtype=float)
 
 
 # ================================================================================================
@@ -98,45 +98,66 @@ neptune = Planet('Neptune', c.R_neptune, c.M_neptune, c.d_neptune, sun, c.a_nept
 
 
 class SSOVisualisation:
-    def __init__(self, SSOs=[]):
+    def __init__(self, SSOs=[], dimensions=2):
         self.SSOs = SSOs
+        self.dimensions = dimensions
         self.__text0 = None
-
-    def make_2D_solar_system(self, i):
-        t = i * 3600 * 24 * 29.5   # Each frame is a month
+    
+    def make_2D_solar_system(self, n):
+        t = n * 3600 * 24 * 29.5   # Each frame is a month
                 
         solar_system = plt.Circle((0, 0), 350, fill=True, fc='black', ls='solid')
         ax.add_artist(solar_system)
         ax.axes.set_aspect('equal')
-        self.__text0 = ax.text(-340, 320, "Month={:4d}".format(i, fontsize=24))
+        self.__text0 = ax.text(-340, 320, "Month={:4d}".format(n, fontsize=24))
         patches = [self.__text0]
         colours = cm.rainbow(np.linspace(0, 1, len(self.SSOs)))[::-1]
 
         for i, obj in enumerate(self.SSOs):
+            radius = np.log10(obj.radius/1e6)
             if obj.obj_type == 'planet':
-                radius = np.log10(obj.radius/1e6)
                 obj.move_in_orbit(t)
-                obj_plot = Circle(obj.position/(0.1*c.au), radius, label=obj.name, color=colours[i])
-                ax.add_patch(obj_plot)
-                patches.append(obj_plot)
-            else:
-                radius = np.log10(obj.radius/1e6)
-                obj_plot = Circle(obj.position/(0.1*c.au), radius, label=obj.name, color=colours[i])
-                ax.add_patch(obj_plot)
-                patches.append(obj_plot)
+            obj_plot = Circle(obj.position/(0.1*c.au), radius, label=obj.name, color=colours[i])
+            ax.add_patch(obj_plot)
+            patches.append(obj_plot)
+
 
         handles, labels = plt.gca().get_legend_handles_labels()
         by_label = dict(zip(labels, handles))
-        plt.legend(by_label.values(), by_label.keys(), bbox_to_anchor=(1.1, 1))
+        plt.legend(by_label.values(), by_label.keys(), bbox_to_anchor=(1.2, 1))
 
         return patches
 
-    def init_figure(self):
-        return self.make_2D_solar_system(i=0)
+    def add_third_dimension(self, obj):
+        if len(obj.position) < 3:
+            obj.position = np.append(obj.position, 0)
+            obj.velocity = np.append(obj.velocity, 0)
 
-    def next_frame(self, i):
-        return self.make_2D_solar_system(i)
+    def make_3D_solar_system(self, n, scatters):
+        t = n * 3600 * 24 * 29.5   # Each frame is a month
+        
+        ax.axes.set_aspect('equal')
+        self.__text0 = ax.text2D(0.05, 0.95, "Month={:4d}".format(n, fontsize=24), 
+                                 transform=ax.transAxes)
+        patches = [self.__text0]
+        colours = cm.rainbow(np.linspace(0, 1, len(self.SSOs)))[::-1]
 
+        for i, obj in enumerate(self.SSOs):
+            print(obj.name)
+            size = ((np.log10(obj.radius/1e6))**2)*10
+            if obj.obj_type == 'planet':
+                obj.move_in_orbit(t)
+            self.add_third_dimension(obj)
+            x, y, z = obj.position/(0.1*c.au)
+            print(x,y,z)
+            patches.append(ax.scatter(x, y, z, marker='.', s=size, color=colours[i], label=obj.name, depthshade=True))
+            
+
+        handles, labels = plt.gca().get_legend_handles_labels()
+        by_label = dict(zip(labels, handles))
+        plt.legend(by_label.values(), by_label.keys(), bbox_to_anchor=(1.5, 1))
+        return patches
+    
     def make_static_plot(self):
         ax = plt.subplot(111)
         ax.set_ylim(-15, 15)
@@ -169,20 +190,56 @@ if __name__ == "__main__":
 
     SSOs = [sun, mercury, venus, earth, mars, jupiter, saturn, uranus, neptune]
     solar_system = SSOVisualisation(SSOs)
+    
+    #solar_system.make_static_plot()
+    
+    fig = plt.figure()
+    ax = plt.axes(xlim=(-350, 350), ylim=(-350, 350), projection='3d')
+    ax.set_facecolor('white')
+    
+    ax.grid(False)
+    ax.w_xaxis.set_pane_color((0.0, 0.0, 0.0, 1.0))
+    ax.w_yaxis.set_pane_color((0.0, 0.0, 0.0, 1.0))
+    ax.w_zaxis.set_pane_color((0.0, 0.0, 0.0, 1.0))
+    #ax.w_xaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
+    #ax.w_yaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
+    #ax.w_zaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
+        
+    #solar_system.init_3D_figure()
+    #solar_system.next_3D_frame(n=1000)
+    
+    init_text = ax.text2D(0.05, 0.95, "Month=0", transform=ax.transAxes)
+    scatters = [init_text]
+    colours = cm.rainbow(np.linspace(0, 1, len(SSOs)))[::-1]
+    for i, obj in enumerate(SSOs):
+        size = ((np.log10(obj.radius/1e6))**2)*10
+        obj.position = np.append(obj.position, 0)
+        x, y, z = obj.position/(0.1*c.au)
+        scatters.append(ax.scatter(x, y, z, marker='.', s=size, color=colours[i], label=obj.name, depthshade=True))
+        print(len(scatters))
 
-    solar_system.make_static_plot()
 
+    animation = anim.FuncAnimation(fig,
+                                   func=solar_system.next_3D_frame,
+                                   init_func=solar_system.init_3D_figure,
+                                   frames=[0,1,100],
+                                   interval=500,
+                                   blit=True)
+
+    #ax.set_xlabel('Distance from Sun (0.1 AU)')
+    #plt.title('The Solar System (2D, animated)')
+    plt.show()
+    '''
     fig = plt.figure()
     ax = plt.axes(xlim=(-350, 350), ylim=(-350, 350))
     ax.set_facecolor('white')
 
 
     animation = anim.FuncAnimation(fig,
-                                   solar_system.next_frame,
-                                   init_func=solar_system.init_figure,
+                                   solar_system.make_2D_solar_system,
                                    frames=2000,
                                    interval=50,
-                                   blit=True)
+                                   blit=True)'''
 
     ax.set_xlabel('Distance from Sun (0.1 AU)')
     plt.title('The Solar System (2D, animated)')
@@ -192,3 +249,4 @@ if __name__ == "__main__":
 # GET MORE ACCURATE TEMPS AND COLOUR CODE BASED ON THOSE??
 # ATMOSPHERIC PRESSURE CALCULATION??
 # ADD MOONS?
+# REMOVE INIT FUNCS?
