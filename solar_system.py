@@ -102,10 +102,10 @@ class SSOVisualisation:
         self.SSOs = SSOs
         self.dimensions = dimensions
         self.__text0 = None
-    
+
     def make_2D_solar_system(self, n):
         t = n * 3600 * 24 * 29.5   # Each frame is a month
-                
+
         solar_system = plt.Circle((0, 0), 350, fill=True, fc='black', ls='solid')
         ax.add_artist(solar_system)
         ax.axes.set_aspect('equal')
@@ -121,7 +121,6 @@ class SSOVisualisation:
             ax.add_patch(obj_plot)
             patches.append(obj_plot)
 
-
         handles, labels = plt.gca().get_legend_handles_labels()
         by_label = dict(zip(labels, handles))
         plt.legend(by_label.values(), by_label.keys(), bbox_to_anchor=(1.2, 1))
@@ -135,35 +134,27 @@ class SSOVisualisation:
 
     def make_3D_solar_system(self, n):
         t = n * 3600 * 24 * 29.5   # Each frame is a month
-        
+
         ax.axes.set_aspect('equal')
-        self.__text0 = ax.text2D(0.05, 0.95, "Month={:4d}".format(n, fontsize=24), 
+        self.__text0 = ax.text2D(0.05, 0.95, "Month={:4d}".format(n, fontsize=24),
                                  transform=ax.transAxes)
         patches = [self.__text0]
         colours = cm.rainbow(np.linspace(0, 1, len(SSOs)))[::-1]
-        
+
         for i, obj in enumerate(self.SSOs):
-            print(obj.name)
             size = ((np.log10(obj.radius/1e6))**2)*10
             if obj.obj_type == 'planet':
                 obj.move_in_orbit(t)
             self.add_third_dimension(obj)
             x, y, z = obj.position/(0.1*c.au)
-            print(x,y,z)
-            patches.append(ax.scatter(x, y, z, marker='.', s=size, color=colours[i], 
+            patches.append(ax.scatter(x, y, z, marker='.', s=size, color=colours[i],
                                       label=obj.name, depthshade=True))
-        '''for i, obj in enumerate(self.SSOs):
-            if obj.obj_type == 'planet':
-                obj.move_in_orbit(t)
-            self.add_third_dimension(obj)
-            x, y, z = obj.position/(0.1*c.au)
-            scatters[i+1]._offsets3d = (x, y, z)'''
-    
+
         handles, labels = plt.gca().get_legend_handles_labels()
         by_label = dict(zip(labels, handles))
         plt.legend(by_label.values(), by_label.keys(), bbox_to_anchor=(1.5, 1))
         return patches
-    
+
     def make_static_plot(self):
         ax = plt.subplot(111)
         ax.set_ylim(-15, 15)
@@ -196,50 +187,12 @@ if __name__ == "__main__":
 
     SSOs = [sun, mercury, venus, earth, mars, jupiter, saturn, uranus, neptune]
     solar_system = SSOVisualisation(SSOs)
-    
-    #solar_system.make_static_plot()
-    
-    fig = plt.figure()
-    ax = plt.axes(xlim=(-350, 350), ylim=(-350, 350), projection='3d')
-    ax.set_facecolor('white')
-    
-    ax.grid(False)
-    ax.w_xaxis.set_pane_color((0.0, 0.0, 0.0, 1.0))
-    ax.w_yaxis.set_pane_color((0.0, 0.0, 0.0, 1.0))
-    ax.w_zaxis.set_pane_color((0.0, 0.0, 0.0, 1.0))
-    #ax.w_xaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
-    #ax.w_yaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
-    #ax.w_zaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
-        
-    #solar_system.init_3D_figure()
-    #solar_system.next_3D_frame(n=1000)
-    '''
-    init_text = ax.text2D(0.05, 0.95, "Month=0", transform=ax.transAxes)
-    scatters = [init_text]
-    colours = cm.rainbow(np.linspace(0, 1, len(SSOs)))[::-1]
-    for i, obj in enumerate(SSOs):
-        size = ((np.log10(obj.radius/1e6))**2)*10
-        obj.position = np.append(obj.position, 0)
-        x, y, z = obj.position/(0.1*c.au)
-        scatters.append(ax.scatter(x, y, z, marker='.', s=size, color=colours[i], label=obj.name, depthshade=True))
-        print(len(scatters))
-        print(scatters)'''
 
+    solar_system.make_static_plot()
 
-    animation = anim.FuncAnimation(fig,
-                                   func=solar_system.make_3D_solar_system,
-                                   frames=[0,1,100],
-                                   interval=500,
-                                   blit=True)
-
-    #ax.set_xlabel('Distance from Sun (0.1 AU)')
-    #plt.title('The Solar System (2D, animated)')
-    plt.show()
-    '''
     fig = plt.figure()
     ax = plt.axes(xlim=(-350, 350), ylim=(-350, 350))
     ax.set_facecolor('white')
-
 
     animation = anim.FuncAnimation(fig,
                                    solar_system.make_2D_solar_system,
@@ -249,10 +202,4 @@ if __name__ == "__main__":
 
     ax.set_xlabel('Distance from Sun (0.1 AU)')
     plt.title('The Solar System (2D, animated)')
-    plt.show()'''
-
-# CALCULATE ATMOPSHERE TRUE/FALSE BASED ONE ESCAPE VELOCITY??
-# GET MORE ACCURATE TEMPS AND COLOUR CODE BASED ON THOSE??
-# ATMOSPHERIC PRESSURE CALCULATION??
-# ADD MOONS?
-# REMOVE INIT FUNCS?
+    plt.show()
